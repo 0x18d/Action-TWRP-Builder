@@ -139,17 +139,26 @@ jobs:
 
     - name: Apply device tree compatibility patches
       run: |
-        # Android 14/TWRP 14.1 的 libtar 兼容补丁随设备树提交，避免直接修改 repo 源码。
+        # 设备树兼容补丁随设备树提交（patches/*.patch 全部按序应用），避免直接修改 repo 源码。
+        # 例：libtar/fscrypt 兼容补丁、TWRP 14.1 FDE 遗留代码编译兼容补丁。
         set -euo pipefail
         device_tree_path="${{ steps.pwd.outputs.workspace-folder }}/${{ github.event.inputs.DEVICE_PATH }}"
-        patch_file="${device_tree_path}/patches/twrp_libtar_fscrypt_android14.patch"
-        if [ ! -f "$patch_file" ]; then
-          echo "未发现设备树兼容补丁，跳过"
+        patch_dir="${device_tree_path}/patches"
+        if [ ! -d "$patch_dir" ]; then
+          echo "未发现设备树补丁目录，跳过"
           exit 0
         fi
-        echo "应用设备树兼容补丁：$patch_file"
-        patch --dry-run -p1 -d "${{ steps.pwd.outputs.workspace-folder }}" < "$patch_file"
-        patch -p1 -d "${{ steps.pwd.outputs.workspace-folder }}" < "$patch_file"
+        shopt -s nullglob
+        patch_files=("$patch_dir"/*.patch)
+        if [ ${#patch_files[@]} -eq 0 ]; then
+          echo "补丁目录为空，跳过"
+          exit 0
+        fi
+        for patch_file in "${patch_files[@]}"; do
+          echo "应用设备树兼容补丁：$(basename "$patch_file")"
+          patch --dry-run -p1 -d "${{ steps.pwd.outputs.workspace-folder }}" < "$patch_file"
+          patch -p1 -d "${{ steps.pwd.outputs.workspace-folder }}" < "$patch_file"
+        done
       working-directory: ${{ steps.pwd.outputs.workspace-folder }}
 
     - name: Sync Device Dependencies
