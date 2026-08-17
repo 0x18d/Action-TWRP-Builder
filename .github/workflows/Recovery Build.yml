@@ -81,7 +81,7 @@ jobs:
             libc6-dev lib32ncurses-dev x11proto-core-dev libx11-dev tree lib32z-dev libgl1-mesa-dev libxml2-utils \
             xsltproc bc ccache lib32readline-dev lib32z1-dev liblz4-tool libncurses-dev libsdl1.2-dev \
             build-essential libgtk-3-dev libglu1-mesa-dev freeglut3-dev git libxml2 lzop pngcrush schedtool squashfs-tools \
-            imagemagick libbz2-dev lzma ncftp qemu-user-static libstdc++-10-dev libncurses6 python3 tar
+            imagemagick libbz2-dev lzma ncftp qemu-user-static libstdc++-10-dev libncurses6 python3 patch tar
 
     - name: Install OpenJDK
       uses: actions/setup-java@v4
@@ -131,6 +131,21 @@ jobs:
         && github.event.inputs.COMMON_PATH != ''
       run: |
         git clone ${{ github.event.inputs.COMMON_TREE_URL }} -b ${{ github.event.inputs.DEVICE_TREE_BRANCH }} ./${{ github.event.inputs.COMMON_PATH }}
+      working-directory: ${{ steps.pwd.outputs.workspace-folder }}
+
+    - name: Apply device tree compatibility patches
+      run: |
+        # Android 14/TWRP 14.1 的 libtar 兼容补丁随设备树提交，避免直接修改 repo 源码。
+        set -euo pipefail
+        device_tree_path="${{ steps.pwd.outputs.workspace-folder }}/${{ github.event.inputs.DEVICE_PATH }}"
+        patch_file="${device_tree_path}/patches/twrp_libtar_fscrypt_android14.patch"
+        if [ ! -f "$patch_file" ]; then
+          echo "未发现设备树兼容补丁，跳过"
+          exit 0
+        fi
+        echo "应用设备树兼容补丁：$patch_file"
+        patch --dry-run -p1 -d "${{ steps.pwd.outputs.workspace-folder }}" < "$patch_file"
+        patch -p1 -d "${{ steps.pwd.outputs.workspace-folder }}" < "$patch_file"
       working-directory: ${{ steps.pwd.outputs.workspace-folder }}
 
     - name: Sync Device Dependencies
