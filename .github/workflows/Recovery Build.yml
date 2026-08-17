@@ -182,7 +182,7 @@ jobs:
         source build/envsetup.sh
         export ALLOW_MISSING_DEPENDENCIES=true
         # 当前 manifest 仅提供 ap2a release，且 Android 14/TWRP 14.1 要求三段式组合。
-        lunch ${{ github.event.inputs.MAKEFILE_NAME }}-ap2a-eng && make clean && make ${{ github.event.inputs.BUILD_TARGET }}image -j2
+        lunch ${{ github.event.inputs.MAKEFILE_NAME }}-ap2a-eng && make clean && make ${{ github.event.inputs.BUILD_TARGET }}-j$(nproc --all)
       working-directory: ${{ steps.pwd.outputs.workspace-folder }}
 
     - name: Upload to Release
