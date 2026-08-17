@@ -50,6 +50,10 @@ jobs:
     permissions:
       contents: write
     steps:
+    - name: 创建虚拟内存 (Swap)
+      uses: pierotofy/set-swap-space@master
+      with:
+        swap-size-gb: 12
     - name: Display Run Parameters
       run: |
         echo "::group::User Environment Variables"
